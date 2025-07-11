@@ -10,6 +10,8 @@
             --primary-hover: #45a049;
             --secondary-color: #2196F3;
             --secondary-hover: #0b7dda;
+            --reset-color: #f44336;
+            --reset-hover: #d32f2f;
         }
         
         * {
@@ -91,6 +93,20 @@
         
         .btn-secondary:hover {
             background-color: var(--secondary-hover);
+        }
+        
+        .btn-reset {
+            background-color: var(--reset-color);
+            color: white;
+        }
+        
+        .btn-reset:hover {
+            background-color: var(--reset-hover);
+        }
+        
+        button:disabled {
+            background-color: #cccccc !important;
+            cursor: not-allowed;
         }
         
         .priority-days {
@@ -270,6 +286,7 @@
         </div>
         
         <button id="generateBtn" class="btn-primary">生成月度餐厅计划</button>
+        <button id="resetBtn" class="btn-reset">重置</button>
         
         <div class="result-section" id="resultSection">
             <h2>生成的月度餐厅计划</h2>
@@ -287,6 +304,7 @@
             const priorityDaysContainer = document.getElementById('priorityDaysContainer');
             const priorityRestaurantsContainer = document.getElementById('priorityRestaurantsContainer');
             const generateBtn = document.getElementById('generateBtn');
+            const resetBtn = document.getElementById('resetBtn');
             const downloadBtn = document.getElementById('downloadBtn');
             const resultSection = document.getElementById('resultSection');
             const allDaysRadio = document.getElementById('all-days');
@@ -303,6 +321,9 @@
             // 加载保存的数据
             loadSavedData();
             
+            // 设置输入监听器
+            setupInputListeners();
+            
             // 监听餐厅输入变化
             restaurantsInput.addEventListener('input', updatePriorityRestaurantSelectors);
             
@@ -310,6 +331,7 @@
             priorityDaysContainer.addEventListener('change', function(e) {
                 if (e.target.type === 'checkbox') {
                     updatePriorityRestaurantSelectors();
+                    checkInputChange();
                 }
             });
             
@@ -318,6 +340,7 @@
                 if (e.target.classList.contains('saved-item')) {
                     restaurantsInput.value = e.target.textContent;
                     updatePriorityRestaurantSelectors();
+                    checkInputChange();
                 }
             });
             
@@ -332,6 +355,7 @@
                     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
                     loadSavedData();
                     allDaysRadio.checked = true;
+                    checkInputChange();
                 }
             });
             
@@ -339,18 +363,60 @@
             allDaysRadio.addEventListener('change', function() {
                 savedData.dateRange = 'all';
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                checkInputChange();
             });
             
             workDaysRadio.addEventListener('change', function() {
                 savedData.dateRange = 'work';
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                checkInputChange();
             });
             
             // 生成按钮点击事件
             generateBtn.addEventListener('click', generateCalendar);
             
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', resetForm);
+            
             // 下载按钮点击事件
             downloadBtn.addEventListener('click', downloadExcel);
+            
+            // 设置输入监听器
+            function setupInputListeners() {
+                const inputs = [
+                    restaurantsInput,
+                    document.getElementById('month'),
+                    ...priorityDaysContainer.querySelectorAll('input[type="checkbox"]'),
+                    allDaysRadio,
+                    workDaysRadio
+                ];
+                
+                inputs.forEach(input => {
+                    input.addEventListener('change', checkInputChange);
+                });
+            }
+            
+            // 检查输入变化
+            function checkInputChange() {
+                if (generateBtn.disabled) {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = '重新生成月度餐厅计划';
+                }
+            }
+            
+            // 重置表单
+            function resetForm() {
+                // 清空结果区域
+                document.getElementById('calendarTable').innerHTML = '';
+                resultSection.style.display = 'none';
+                
+                // 重置生成按钮
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成月度餐厅计划';
+                
+                // 滚动到顶部
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
             
             // 加载保存的数据
             function loadSavedData() {
@@ -459,6 +525,11 @@
                         select.appendChild(option);
                     });
                     
+                    // 监听选择变化
+                    select.addEventListener('change', function() {
+                        checkInputChange();
+                    });
+                    
                     group.appendChild(label);
                     group.appendChild(select);
                     priorityRestaurantsContainer.appendChild(group);
@@ -558,6 +629,9 @@
                 // 显示结果
                 displayCalendar(calendar);
                 resultSection.style.display = 'block';
+                
+                // 禁用生成按钮
+                generateBtn.disabled = true;
                 
                 // 滚动到结果区域
                 resultSection.scrollIntoView({ behavior: 'smooth' });
