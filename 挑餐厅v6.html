@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月度餐厅随机选择工具</title>
+    <style>
+
+/* 新增的关闭按钮样式 */
+        .close-btn-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        .close-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .close-btn:hover {
+            background-color: #d32f2f;
+        }
+        :root {
+            --primary-color: #4CAF50;
+            --primary-hover: #45a049;
+            --secondary-color: #2196F3;
+            --secondary-hover: #0b7dda;
+            --reset-color: #f44336;
+            --reset-hover: #d32f2f;
+            --copy-color: #9c27b0;
+            --copy-hover: #7b1fa2;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 100%;
+            margin: 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            line-height: 1.5;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input[type="text"], 
+        input[type="month"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--secondary-hover);
+        }
+        
+        .btn-reset {
+            background-color: var(--reset-color);
+            color: white;
+        }
+        
+        .btn-reset:hover {
+            background-color: var(--reset-hover);
+        }
+        
+        .btn-copy {
+            background-color: var(--copy-color);
+            color: white;
+        }
+        
+        .btn-copy:hover {
+            background-color: var(--copy-hover);
+        }
+        
+        button:disabled {
+            background-color: #cccccc !important;
+            cursor: not-allowed;
+        }
+        
+        .priority-days {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .day-checkbox {
+            display: flex;
+            align-items: center;
+        }
+        
+        .day-checkbox input {
+            margin-right: 8px;
+            width: 20px;
+            height: 20px;
+        }
+        
+        .priority-restaurant {
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            word-break: break-word;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .saved-restaurants {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .saved-restaurants span {
+            margin-right: 8px;
+            display: inline-block;
+            margin-bottom: 5px;
+            background-color: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        
+        .clear-history {
+            display: inline-block;
+            margin-top: 5px;
+            color: #666;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .date-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .date-option {
+            display: flex;
+            align-items: center;
+        }
+        
+        .date-option input {
+            margin-right: 8px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .action-buttons button {
+            flex: 1;
+            margin-top: 0;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        @media (min-width: 768px) {
+            body {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            
+            .priority-days {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            table {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 新增的关闭按钮 -->
+    <div class="close-btn-container">
+        <button class="close-btn" onclick="window.location.href='index.html'">关闭</button>
+    </div>
+
+    <div class="container">
+        <h1>月度餐厅随机选择工具</h1>
+        
+        <div class="input-group">
+            <label for="restaurants">可选餐厅（用空格分隔）：</label>
+            <input type="text" id="restaurants" placeholder="例如: 餐厅A 餐厅B 餐厅C">
+            <div class="saved-restaurants" id="savedRestaurants"></div>
+            <div class="clear-history" id="clearHistory">清除历史记录</div>
+        </div>
+        
+        <div class="input-group">
+            <label>日期范围：</label>
+            <div class="date-options">
+                <div class="date-option">
+                    <input type="radio" id="all-days" name="date-range" value="all" checked>
+                    <label for="all-days">全部日期</label>
+                </div>
+                <div class="date-option">
+                    <input type="radio" id="work-days" name="date-range" value="work">
+                    <label for="work-days">仅工作日（周一至周五）</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label>优先日选择：</label>
+            <div class="priority-days" id="priorityDaysContainer">
+                <div class="day-checkbox">
+                    <input type="checkbox" id="monday" value="星期一">
+                    <label for="monday">星期一</label>
+                </div>
+                <div class="day-checkbox">
+                    <input type="checkbox" id="tuesday" value="星期二">
+                    <label for="tuesday">星期二</label>
+                </div>
+                <div class="day-checkbox">
+                    <input type="checkbox" id="wednesday" value="星期三">
+                    <label for="wednesday">星期三</label>
+                </div>
+                <div class="day-checkbox">
+                    <input type="checkbox" id="thursday" value="星期四">
+                    <label for="thursday">星期四</label>
+                </div>
+                <div class="day-checkbox">
+                    <input type="checkbox" id="friday" value="星期五">
+                    <label for="friday">星期五</label>
+                </div>
+                <div class="day-checkbox">
+                    <input type="checkbox" id="saturday" value="星期六">
+                    <label for="saturday">星期六</label>
+                </div>
+                <div class="day-checkbox">
+                    <input type="checkbox" id="sunday" value="星期日">
+                    <label for="sunday">星期日</label>
+                </div>
+            </div>
+        </div>
+        
+        <div id="priorityRestaurantsContainer">
+            <!-- 动态生成的优先日餐厅选择器 -->
+        </div>
+        
+        <div class="input-group">
+            <label for="month">选择年月：</label>
+            <input type="month" id="month">
+        </div>
+        
+        <button id="generateBtn" class="btn-primary">生成月度餐厅计划</button>
+        <button id="resetBtn" class="btn-reset">重置</button>
+        
+        <div class="result-section" id="resultSection">
+            <h2>生成的月度餐厅计划</h2>
+            <div id="calendarTable"></div>
+            <div class="action-buttons">
+                <button class="btn-secondary" id="downloadBtn">下载Excel文件</button>
+                <button class="btn-copy" id="copyBtn">复制文本</button>
+            </div>
+        </div>
+        
+        <div class="toast" id="toast">已复制到剪贴板</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const restaurantsInput = document.getElementById('restaurants');
+            const savedRestaurantsContainer = document.getElementById('savedRestaurants');
+            const clearHistoryBtn = document.getElementById('clearHistory');
+            const priorityDaysContainer = document.getElementById('priorityDaysContainer');
+            const priorityRestaurantsContainer = document.getElementById('priorityRestaurantsContainer');
+            const generateBtn = document.getElementById('generateBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const resultSection = document.getElementById('resultSection');
+            const toast = document.getElementById('toast');
+            const allDaysRadio = document.getElementById('all-days');
+            const workDaysRadio = document.getElementById('work-days');
+            
+            // 初始化本地存储
+            const STORAGE_KEY = 'restaurantPlannerData';
+            let savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+                restaurants: [],
+                prioritySettings: {},
+                dateRange: 'all'
+            };
+            
+            // 加载保存的数据
+            loadSavedData();
+            
+            // 设置输入监听器
+            setupInputListeners();
+            
+            // 监听餐厅输入变化
+            restaurantsInput.addEventListener('input', updatePriorityRestaurantSelectors);
+            
+            // 监听优先日选择变化
+            priorityDaysContainer.addEventListener('change', function(e) {
+                if (e.target.type === 'checkbox') {
+                    updatePriorityRestaurantSelectors();
+                    checkInputChange();
+                }
+            });
+            
+            // 点击保存的餐厅项
+            savedRestaurantsContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('saved-item')) {
+                    restaurantsInput.value = e.target.textContent;
+                    updatePriorityRestaurantSelectors();
+                    checkInputChange();
+                }
+            });
+            
+            // 清除历史记录
+            clearHistoryBtn.addEventListener('click', function() {
+                if (confirm('确定要清除所有历史记录吗？')) {
+                    savedData = {
+                        restaurants: [],
+                        prioritySettings: {},
+                        dateRange: 'all'
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                    loadSavedData();
+                    allDaysRadio.checked = true;
+                    checkInputChange();
+                }
+            });
+            
+            // 日期范围选择变化
+            allDaysRadio.addEventListener('change', function() {
+                savedData.dateRange = 'all';
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                checkInputChange();
+            });
+            
+            workDaysRadio.addEventListener('change', function() {
+                savedData.dateRange = 'work';
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                checkInputChange();
+            });
+            
+            // 生成按钮点击事件
+            generateBtn.addEventListener('click', generateCalendar);
+            
+            // 重置按钮点击事件
+            resetBtn.addEventListener('click', resetForm);
+            
+            // 下载按钮点击事件
+            downloadBtn.addEventListener('click', downloadExcel);
+            
+            // 复制按钮点击事件
+            copyBtn.addEventListener('click', copyToClipboard);
+            
+            // 设置输入监听器
+            function setupInputListeners() {
+                const inputs = [
+                    restaurantsInput,
+                    document.getElementById('month'),
+                    ...priorityDaysContainer.querySelectorAll('input[type="checkbox"]'),
+                    allDaysRadio,
+                    workDaysRadio
+                ];
+                
+                inputs.forEach(input => {
+                    input.addEventListener('change', checkInputChange);
+                });
+            }
+            
+            // 检查输入变化
+            function checkInputChange() {
+                if (generateBtn.disabled) {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = '重新生成月度餐厅计划';
+                }
+            }
+            
+            // 重置表单
+            function resetForm() {
+                // 清空结果区域
+                document.getElementById('calendarTable').innerHTML = '';
+                resultSection.style.display = 'none';
+                
+                // 重置生成按钮
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成月度餐厅计划';
+                
+                // 滚动到顶部
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            
+            // 复制文本到剪贴板
+            function copyToClipboard() {
+                if (!window.calendarData || window.calendarData.length === 0) {
+                    alert('没有可复制的数据！请先生成计划');
+                    return;
+                }
+                
+                // 构建复制文本
+                let textToCopy = "🍴 月度餐厅计划 🍴\n\n";
+                textToCopy += "日期\t\t星期\t餐厅\n";
+                textToCopy += "--------------------------------\n";
+                
+                window.calendarData.forEach(day => {
+                    textToCopy += `${day.date}\t${day.dayOfWeek}\t${day.restaurant}\n`;
+                });
+                
+                // 使用现代剪贴板API
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        showToast();
+                    }).catch(err => {
+                        fallbackCopy(textToCopy);
+                    });
+                } else {
+                    fallbackCopy(textToCopy);
+                }
+            }
+            
+            // 兼容旧浏览器的复制方法
+            function fallbackCopy(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = 0;
+                document.body.appendChild(textarea);
+                textarea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showToast();
+                } catch (err) {
+                    alert('复制失败，请手动选择文本复制');
+                }
+                
+                document.body.removeChild(textarea);
+            }
+            
+            // 显示复制成功的提示
+            function showToast() {
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 2000);
+            }
+            
+            // 加载保存的数据
+            function loadSavedData() {
+                // 显示保存的餐厅列表
+                updateSavedRestaurantsDisplay();
+                
+                // 如果有保存的餐厅，填充到输入框
+                if (savedData.restaurants.length > 0) {
+                    restaurantsInput.value = savedData.restaurants[0];
+                    updatePriorityRestaurantSelectors();
+                }
+                
+                // 设置日期范围选项
+                if (savedData.dateRange === 'work') {
+                    workDaysRadio.checked = true;
+                } else {
+                    allDaysRadio.checked = true;
+                }
+            }
+            
+            // 更新保存的餐厅显示
+            function updateSavedRestaurantsDisplay() {
+                savedRestaurantsContainer.innerHTML = '';
+                
+                if (savedData.restaurants.length === 0) {
+                    savedRestaurantsContainer.innerHTML = '<em>暂无历史记录</em>';
+                    return;
+                }
+                
+                savedData.restaurants.forEach(restaurant => {
+                    const span = document.createElement('span');
+                    span.className = 'saved-item';
+                    span.textContent = restaurant;
+                    span.title = '点击使用此列表';
+                    savedRestaurantsContainer.appendChild(span);
+                });
+            }
+            
+            // 保存当前餐厅列表
+            function saveRestaurantsList(restaurants) {
+                const restaurantStr = restaurants.join(' ');
+                
+                // 如果已经存在，先移除
+                savedData.restaurants = savedData.restaurants.filter(r => r !== restaurantStr);
+                
+                // 添加到数组开头
+                savedData.restaurants.unshift(restaurantStr);
+                
+                // 最多保存5条记录
+                if (savedData.restaurants.length > 5) {
+                    savedData.restaurants = savedData.restaurants.slice(0, 5);
+                }
+                
+                // 保存到本地存储
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                
+                // 更新显示
+                updateSavedRestaurantsDisplay();
+            }
+            
+            // 更新优先日餐厅选择器
+            function updatePriorityRestaurantSelectors() {
+                const restaurants = restaurantsInput.value.trim().split(/\s+/).filter(Boolean);
+                const checkedDays = Array.from(priorityDaysContainer.querySelectorAll('input[type="checkbox"]:checked'));
+                
+                // 清空容器
+                priorityRestaurantsContainer.innerHTML = '';
+                
+                if (restaurants.length === 0) {
+                    return;
+                }
+                
+                checkedDays.forEach(day => {
+                    const dayValue = day.value;
+                    const dayId = day.id;
+                    
+                    const group = document.createElement('div');
+                    group.className = 'input-group priority-restaurant';
+                    group.id = `priority-group-${dayId}`;
+                    
+                    const label = document.createElement('label');
+                    label.textContent = `${dayValue}优先餐厅:`;
+                    label.htmlFor = `priority-${dayId}`;
+                    
+                    const select = document.createElement('select');
+                    select.id = `priority-${dayId}`;
+                    select.dataset.day = dayValue;
+                    
+                    // 添加默认选项
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- 请选择 --';
+                    select.appendChild(defaultOption);
+                    
+                    // 添加餐厅选项
+                    restaurants.forEach(restaurant => {
+                        const option = document.createElement('option');
+                        option.value = restaurant;
+                        option.textContent = restaurant;
+                        
+                        // 检查是否有保存的优先设置
+                        if (savedData.prioritySettings[dayValue] === restaurant) {
+                            option.selected = true;
+                        }
+                        
+                        select.appendChild(option);
+                    });
+                    
+                    // 监听选择变化
+                    select.addEventListener('change', function() {
+                        checkInputChange();
+                    });
+                    
+                    group.appendChild(label);
+                    group.appendChild(select);
+                    priorityRestaurantsContainer.appendChild(group);
+                    
+                    // 显示该组
+                    group.style.display = 'block';
+                });
+            }
+            
+            function generateCalendar() {
+                // 获取用户输入
+                const restaurantsInputValue = restaurantsInput.value.trim();
+                const monthInput = document.getElementById('month').value;
+                const isWorkDaysOnly = workDaysRadio.checked;
+                
+                // 验证输入
+                if (!restaurantsInputValue) {
+                    alert('请输入至少一个餐厅！');
+                    return;
+                }
+                
+                if (!monthInput) {
+                    alert('请选择年月！');
+                    return;
+                }
+                
+                // 解析餐厅列表
+                const allRestaurants = restaurantsInputValue.split(/\s+/).filter(Boolean);
+                
+                // 保存当前餐厅列表
+                saveRestaurantsList(allRestaurants);
+                
+                // 获取优先日设置
+                const prioritySettings = {};
+                const prioritySelects = priorityRestaurantsContainer.querySelectorAll('select');
+                
+                prioritySelects.forEach(select => {
+                    const day = select.dataset.day;
+                    const restaurant = select.value;
+                    
+                    if (restaurant) {
+                        prioritySettings[day] = restaurant;
+                    }
+                });
+                
+                // 保存优先设置
+                savedData.prioritySettings = prioritySettings;
+                savedData.dateRange = isWorkDaysOnly ? 'work' : 'all';
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+                
+                // 解析年月
+                const [year, month] = monthInput.split('-').map(Number);
+                
+                // 获取该月的天数
+                const daysInMonth = new Date(year, month, 0).getDate();
+                
+                // 创建日期数组
+                const calendar = [];
+                
+                // 创建可用餐厅池（深拷贝）
+                let availableRestaurants = [...allRestaurants];
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(year, month - 1, day);
+                    const dayOfWeek = getDayOfWeekChinese(date.getDay());
+                    
+                    // 如果只选择工作日且是周末，跳过
+                    if (isWorkDaysOnly && (dayOfWeek === '星期六' || dayOfWeek === '星期日')) {
+                        continue;
+                    }
+                    
+                    let selectedRestaurant = '';
+                    
+                    // 检查是否是优先日且有设置优先餐厅
+                    if (prioritySettings[dayOfWeek]) {
+                        selectedRestaurant = prioritySettings[dayOfWeek];
+                    } else {
+                        // 从普通餐厅中选择
+                        if (availableRestaurants.length === 0) {
+                            availableRestaurants = [...allRestaurants];
+                        }
+                        
+                        const randomIndex = Math.floor(Math.random() * availableRestaurants.length);
+                        selectedRestaurant = availableRestaurants[randomIndex];
+                        
+                        // 从可用餐厅中移除
+                        availableRestaurants.splice(randomIndex, 1);
+                    }
+                    
+                    calendar.push({
+                        date: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+                        dayOfWeek,
+                        restaurant: selectedRestaurant
+                    });
+                }
+                
+                // 显示结果
+                displayCalendar(calendar);
+                resultSection.style.display = 'block';
+                
+                // 禁用生成按钮
+                generateBtn.disabled = true;
+                
+                // 滚动到结果区域
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+                
+                // 保存数据供下载使用
+                window.calendarData = calendar;
+            }
+            
+            function getDayOfWeekChinese(day) {
+                const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                return days[day];
+            }
+            
+            function displayCalendar(calendar) {
+                const table = document.createElement('table');
+                
+                // 创建表头
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                ['日期', '星期', '餐厅'].forEach(text => {
+                    const th = document.createElement('th');
+                    th.textContent = text;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // 创建表体
+                const tbody = document.createElement('tbody');
+                calendar.forEach(day => {
+                    const row = document.createElement('tr');
+                    
+                    const dateCell = document.createElement('td');
+                    dateCell.textContent = day.date;
+                    row.appendChild(dateCell);
+                    
+                    const dayCell = document.createElement('td');
+                    dayCell.textContent = day.dayOfWeek;
+                    row.appendChild(dayCell);
+                    
+                    const restaurantCell = document.createElement('td');
+                    restaurantCell.textContent = day.restaurant;
+                    row.appendChild(restaurantCell);
+                    
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                
+                // 更新DOM
+                const tableContainer = document.getElementById('calendarTable');
+                tableContainer.innerHTML = '';
+                tableContainer.appendChild(table);
+            }
+            
+            function downloadExcel() {
+                if (!window.calendarData || window.calendarData.length === 0) {
+                    alert('没有可下载的数据！');
+                    return;
+                }
+                
+                // 创建CSV内容
+                let csvContent = "日期,星期,餐厅\n";
+                
+                window.calendarData.forEach(day => {
+                    csvContent += `${day.date},${day.dayOfWeek},${day.restaurant}\n`;
+                });
+                
+                // 创建Blob对象
+                const blob = new Blob(["\uFEFF"+csvContent], { type: 'text/csv;charset=utf-8;' });
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                // 获取年月用于文件名
+                const monthInput = document.getElementById('month').value;
+                const [year, month] = monthInput.split('-');
+                const fileName = `餐厅计划_${year}年${month}月.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', fileName);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+    </script>
+</body>
+</html>
