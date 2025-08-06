@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片墙报表生成工具</title>
+    <!-- 引入html2pdf.js库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+
+  /* 新增的关闭按钮样式 */
+        .close-btn-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        .close-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .close-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .directory-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="file"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            flex: 1;
+        }
+        #generate-btn {
+            background-color: #4CAF50;
+        }
+        #generate-btn:hover {
+            background-color: #45a049;
+        }
+        #pdf-btn {
+            background-color: #2196F3;
+        }
+        #pdf-btn:hover {
+            background-color: #0b7dda;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .gallery-section {
+            margin-bottom: 40px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            page-break-inside: avoid; /* PDF分页时不拆分 */
+        }
+        .section-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #4CAF50;
+            color: #333;
+        }
+        .section-title[contenteditable="true"] {
+            outline: 1px dashed #4CAF50;
+            padding: 2px 5px;
+            background-color: #f9f9f9;
+        }
+        .thumbnails {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .thumbnail {
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            height: 150px;
+        }
+        .thumbnail:hover {
+            transform: scale(1.05);
+        }
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s;
+        }
+        .thumbnail:hover img {
+            opacity: 0.8;
+        }
+        .delete-btn {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background-color: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+        .thumbnail:hover .delete-btn {
+            opacity: 1;
+        }
+        .delete-btn:hover {
+            background-color: rgba(255, 0, 0, 0.9);
+        }
+        #preview-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        #preview-overlay.active {
+            display: flex;
+        }
+        #preview-image {
+            max-width: 90%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+        .close-preview {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .close-preview:hover {
+            background-color: #d32f2f;
+        }
+        #hover-preview {
+            position: fixed;
+            max-width: 500px;
+            max-height: 500px;
+            z-index: 100;
+            border: 5px solid white;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            pointer-events: none;
+            display: none;
+        }
+        #hover-preview.active {
+            display: block;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #report, #report * {
+                visibility: visible;
+            }
+            #report {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .gallery-section {
+                page-break-inside: avoid;
+            }
+            .delete-btn {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 新增的关闭按钮 -->
+    <div class="close-btn-container">
+        <button class="close-btn" onclick="window.location.href='index.html'">关闭</button>
+    </div>
+
+    <div class="container">
+        <h1>照片墙报表生成工具</h1>
+        
+        <div class="controls">
+            <div class="directory-input">
+                <label for="directory">选择图片目录:</label>
+                <input type="file" id="directory" webkitdirectory directory multiple>
+            </div>
+            <div class="buttons">
+                <button id="generate-btn" disabled>生成照片墙</button>
+                <button id="pdf-btn" disabled>另存为PDF</button>
+            </div>
+        </div>
+        
+        <div id="report">
+            <!-- 照片墙将在这里生成 -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const directoryInput = document.getElementById('directory');
+            const generateBtn = document.getElementById('generate-btn');
+            const pdfBtn = document.getElementById('pdf-btn');
+            const reportDiv = document.getElementById('report');
+            
+            // 创建预览元素并添加到body
+            const hoverPreview = document.createElement('img');
+            hoverPreview.id = 'hover-preview';
+            hoverPreview.alt = '预览';
+            document.body.appendChild(hoverPreview);
+            
+            const previewOverlay = document.createElement('div');
+            previewOverlay.id = 'preview-overlay';
+            
+            const previewImage = document.createElement('img');
+            previewImage.id = 'preview-image';
+            previewImage.alt = '放大预览';
+            
+            const closePreviewBtn = document.createElement('button');
+            closePreviewBtn.className = 'close-preview';
+            closePreviewBtn.textContent = '关闭 (X)';
+            
+            previewOverlay.appendChild(previewImage);
+            previewOverlay.appendChild(closePreviewBtn);
+            document.body.appendChild(previewOverlay);
+            
+            let filesMap = new Map();
+            let currentFiles = []; // 存储当前显示的文件
+            
+            // 判断是否为日期格式目录名
+            function isDateDir(dirName) {
+                return /^\d{4}-\d{2}-\d{2}$/.test(dirName) || 
+                       /^\d{4}\d{2}\d{2}$/.test(dirName) ||
+                       /^\d{4}年\d{1,2}月\d{1,2}日$/.test(dirName);
+            }
+            
+            // 将目录名转换为可排序的日期格式
+            function parseDateDir(dirName) {
+                // 处理 2023-12-31 格式
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dirName)) {
+                    return new Date(dirName);
+                }
+                // 处理 20231231 格式
+                if (/^\d{8}$/.test(dirName)) {
+                    const year = dirName.substring(0, 4);
+                    const month = dirName.substring(4, 6);
+                    const day = dirName.substring(6, 8);
+                    return new Date(`${year}-${month}-${day}`);
+                }
+                // 处理 2023年12月31日 格式
+                if (/^\d{4}年\d{1,2}月\d{1,2}日$/.test(dirName)) {
+                    const [year, month, day] = dirName.match(/\d+/g);
+                    return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+                }
+                return null;
+            }
+            
+            // 监听目录选择
+            directoryInput.addEventListener('change', function(event) {
+                const files = event.target.files;
+                filesMap.clear();
+                currentFiles = Array.from(files);
+                
+                // 按目录分组文件
+                for (let file of files) {
+                    if (!file.type.startsWith('image/')) continue;
+                    
+                    const path = file.webkitRelativePath;
+                    const pathParts = path.split('/');
+                    
+                    // 主目录是第一部分
+                    const mainDir = pathParts[0];
+                    
+                    // 如果有子目录，则使用子目录名作为分组键
+                    // 否则使用"主目录"作为分组键
+                    const groupKey = pathParts.length > 2 ? pathParts[1] : "主目录";
+                    
+                    if (!filesMap.has(groupKey)) {
+                        filesMap.set(groupKey, {
+                            dirName: groupKey,
+                            files: [],
+                            isDateDir: isDateDir(groupKey),
+                            date: parseDateDir(groupKey)
+                        });
+                    }
+                    
+                    filesMap.get(groupKey).files.push(file);
+                }
+                
+                generateBtn.disabled = filesMap.size === 0;
+                pdfBtn.disabled = true;
+            });
+            
+            // 生成照片墙
+            generateBtn.addEventListener('click', function() {
+                if (filesMap.size === 0) return;
+                
+                reportDiv.innerHTML = '';
+                
+                // 获取主目录名
+                const mainDir = directoryInput.files[0].webkitRelativePath.split('/')[0];
+                
+                // 创建报表标题
+                const reportTitle = document.createElement('h1');
+                reportTitle.textContent = mainDir;
+                reportDiv.appendChild(reportTitle);
+                
+                // 将Map转换为数组并排序
+                const sortedGroups = Array.from(filesMap.values()).sort((a, b) => {
+                    // 主目录排在最前面
+                    if (a.dirName === "主目录") return -1;
+                    if (b.dirName === "主目录") return 1;
+                    
+                    // 如果都是日期目录，按日期排序
+                    if (a.isDateDir && b.isDateDir) {
+                        return a.date - b.date;
+                    }
+                    
+                    // 如果只有一个是日期目录，日期目录排在前面
+                    if (a.isDateDir) return -1;
+                    if (b.isDateDir) return 1;
+                    
+                    // 其他按目录名排序
+                    return a.dirName.localeCompare(b.dirName);
+                });
+                
+                // 为每个目录组创建照片集锦
+                sortedGroups.forEach(group => {
+                    const section = document.createElement('div');
+                    section.className = 'gallery-section';
+                    
+                    const title = document.createElement('h2');
+                    title.className = 'section-title';
+                    title.textContent = group.dirName;
+                    title.contentEditable = true;
+                    section.appendChild(title);
+                    
+                    const thumbnails = document.createElement('div');
+                    thumbnails.className = 'thumbnails';
+                    
+                    // 按文件名排序
+                    group.files.sort((a, b) => a.name.localeCompare(b.name));
+                    
+                    group.files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const thumbnail = document.createElement('div');
+                            thumbnail.className = 'thumbnail';
+                            
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.alt = file.name;
+                            thumbnail.appendChild(img);
+                            
+                            // 添加删除按钮
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'delete-btn';
+                            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                            deleteBtn.title = '删除此照片';
+                            
+                            // 删除功能
+                            deleteBtn.addEventListener('click', function(event) {
+                                event.stopPropagation(); // 阻止触发缩略图点击事件
+                                
+                                // 从当前文件列表中移除
+                                const index = currentFiles.findIndex(f => f.name === file.name && f.size === file.size);
+                                if (index !== -1) {
+                                    currentFiles.splice(index, 1);
+                                }
+                                
+                                // 从UI中移除
+                                thumbnail.remove();
+                                
+                                // 如果该组没有照片了，移除整个组
+                                if (thumbnails.children.length === 0) {
+                                    section.remove();
+                                }
+                            });
+                            
+                            thumbnail.appendChild(deleteBtn);
+                            
+                            // 鼠标悬停预览
+                            thumbnail.addEventListener('mouseenter', function(event) {
+                                hoverPreview.src = e.target.result;
+                                hoverPreview.classList.add('active');
+                                
+                                // 定位预览图
+                                const rect = thumbnail.getBoundingClientRect();
+                                hoverPreview.style.left = `${Math.min(rect.right + 10, window.innerWidth - 510)}px`;
+                                hoverPreview.style.top = `${rect.top}px`;
+                            });
+                            
+                            thumbnail.addEventListener('mouseleave', function() {
+                                hoverPreview.classList.remove('active');
+                            });
+                            
+                            // 点击放大
+                            thumbnail.addEventListener('click', function() {
+                                previewImage.src = e.target.result;
+                                previewOverlay.classList.add('active');
+                            });
+                            
+                            thumbnails.appendChild(thumbnail);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    section.appendChild(thumbnails);
+                    reportDiv.appendChild(section);
+                });
+                
+                pdfBtn.disabled = false;
+            });
+            
+            // 导出PDF功能
+            pdfBtn.addEventListener('click', function() {
+                if (reportDiv.children.length === 0) return;
+                
+                const opt = {
+                    margin: 10,
+                    filename: '照片墙报表.pdf',
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 0.7, // 降低质量以减小文件大小
+                    },
+                    html2canvas: { 
+                        scale: 1.5, // 降低缩放比例
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        letterRendering: true
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait',
+                        compress: true
+                    },
+                    pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy'] 
+                    }
+                };
+                
+                // 临时禁用按钮防止重复点击
+                pdfBtn.disabled = true;
+                pdfBtn.textContent = '正在生成PDF...';
+                
+                // 生成PDF
+                html2pdf().set(opt).from(reportDiv).save().then(() => {
+                    pdfBtn.textContent = '另存为PDF';
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('生成PDF失败:', err);
+                    pdfBtn.textContent = '另存为PDF';
+                    pdfBtn.disabled = false;
+                    alert('生成PDF失败，请重试');
+                });
+            });
+            
+            // 关闭预览
+            closePreviewBtn.addEventListener('click', function() {
+                previewOverlay.classList.remove('active');
+            });
+            
+            // 点击空白处关闭预览
+            previewOverlay.addEventListener('click', function(e) {
+                if (e.target === previewOverlay) {
+                    previewOverlay.classList.remove('active');
+                }
+            });
+            
+            // 按ESC键关闭预览
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    previewOverlay.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
